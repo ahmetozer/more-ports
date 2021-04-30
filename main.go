@@ -7,11 +7,11 @@ import (
 	"log"
 	"os"
 	"strconv"
+
+	server "github.com/ahmetozer/more-ports/server"
 )
 
 var (
-	flagServer  bool   = false
-	flagClient  bool   = false
 	flagVersion bool   = false
 	flagHelp    bool   = false
 	GitTag      string = ""
@@ -20,14 +20,22 @@ var (
 	BuildTime   string = ""
 	RunningEnv  string = ""
 	pidLocation string = ""
+	initHelp    string = `
+	Sub Commands:
+		server:	run more-ports in server mode
+`
 )
 
 func init() {
-	flag.BoolVar(&flagClient, "client", false, "Run as client mode")
-	flag.BoolVar(&flagServer, "server", false, "Run as server mode")
 	flag.BoolVar(&flagVersion, "v", false, "Show version")
 	flag.BoolVar(&flagHelp, "h", false, "Show help")
-	flag.StringVar(&pidLocation, "pid", "/var/run/more-ports.pid", "Set pid location")
+	flag.StringVar(&pidLocation, "pid", "", "Set pid location")
+
+	flag.Usage = func() {
+		flag.PrintDefaults()
+		fmt.Println(initHelp)
+		pVersion()
+	}
 
 	flag.Parse()
 	if flagVersion {
@@ -35,14 +43,40 @@ func init() {
 	}
 	if flagHelp {
 		flag.PrintDefaults()
+		fmt.Println(initHelp)
 		pVersion()
+
 	}
-	generatePidFile()
+	if pidLocation != "" {
+		generatePidFile()
+	}
+
 }
 
 func main() {
+	log.Println("More Ports Service")
 	args := flag.Args()
-	fmt.Printf("%s", args)
+	subcmd := ""
+	if len(args) > 0 {
+		subcmd = args[0]
+		args = args[1:]
+	} else {
+		log.Println("Mode is not given.")
+		// subcmd = "server"
+		// log.Println("Mode is set to server automaticaly")
+	}
+
+	switch subcmd {
+	case "server":
+		log.Println("Server mode")
+		server.RunningEnv = RunningEnv
+		server.Main(args)
+	case "client":
+		log.Println("Client mode")
+		//client(args)
+	default:
+		log.Fatalf("Err mode is not server neither client")
+	}
 }
 
 func pVersion() {

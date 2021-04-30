@@ -30,12 +30,13 @@ func publicKey(priv interface{}) interface{} {
 }
 
 type CertConfig struct {
-	ed25519Key bool
-	isCA       bool
-	rsaBits    int
-	ecdsaCurve string
-	validFrom  string
-	validFor   time.Duration
+	Ed25519Key bool
+	IsCA       bool
+	RsaBits    int
+	EcdsaCurve string
+	ValidFrom  string
+	CertDir    string
+	ValidFor   time.Duration
 	Hosts      []string
 }
 
@@ -48,41 +49,43 @@ func (config *CertConfig) Defaults() {
 		config.Hosts = []string{hostname}
 	}
 
-	if (config.validFor / 1) == 0 {
-		config.validFor = 365 * 24 * time.Hour
+	if (config.ValidFor / 1) == 0 {
+		config.ValidFor = 365 * 24 * time.Hour
 	}
-	if config.rsaBits == 0 {
-		config.rsaBits = 2048
+	if config.RsaBits == 0 {
+		config.RsaBits = 2048
 	}
-
+	if config.CertDir == "" {
+		config.CertDir = "/tmp/cert/"
+	}
 }
 
 func (config CertConfig) Generate() error {
 	var err error
 	// create Certiface dir
-	if _, err = os.Stat("/tmp/cert/"); os.IsNotExist(err) {
-		if err = os.MkdirAll("/tmp/cert/", os.ModePerm); err != nil {
+	if _, err = os.Stat(config.CertDir); os.IsNotExist(err) {
+		if err = os.MkdirAll(config.CertDir, os.ModePerm); err != nil {
 			return err
 		}
 	}
 
-	if _, err := os.Stat("/tmp/cert/key.pem"); err == nil {
-		if _, err := os.Stat("/tmp/cert/cert.pem"); err != nil {
+	if _, err := os.Stat(config.CertDir + "/key.pem"); err == nil {
+		if _, err := os.Stat(config.CertDir + "/cert.pem"); err != nil {
 			return err
 		}
 	}
 
 	var priv interface{}
 
-	switch config.ecdsaCurve {
+	switch config.EcdsaCurve {
 	case "":
-		if config.ed25519Key {
+		if config.Ed25519Key {
 			_, priv, err = ed25519.GenerateKey(rand.Reader)
 			if err != nil {
 				return err
 			}
 		} else {
-			priv, err = rsa.GenerateKey(rand.Reader, config.rsaBits)
+			priv, err = rsa.GenerateKey(rand.Reader, config.RsaBits)
 			if err != nil {
 				return err
 			}
@@ -96,23 +99,23 @@ func (config CertConfig) Generate() error {
 	case "P521":
 		priv, err = ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	default:
-		return fmt.Errorf("unrecognized elliptic curve: %q", config.ecdsaCurve)
+		return fmt.Errorf("unrecognized elliptic curve: %q", config.EcdsaCurve)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to generate private key: %v", err)
 	}
 
 	var notBefore time.Time
-	if len(config.validFrom) == 0 {
+	if len(config.ValidFrom) == 0 {
 		notBefore = time.Now()
 	} else {
-		notBefore, err = time.Parse("Jan 2 15:04:05 2006", config.validFrom)
+		notBefore, err = time.Parse("Jan 2 15:04:05 2006", config.ValidFrom)
 		if err != nil {
 			return fmt.Errorf("failed to parse creation date: %v", err)
 		}
 	}
 
-	notAfter := notBefore.Add(config.validFor)
+	notAfter := notBefore.Add(config.ValidFor)
 
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
@@ -141,7 +144,7 @@ func (config CertConfig) Generate() error {
 		}
 	}
 
-	if config.isCA {
+	if config.IsCA {
 		template.IsCA = true
 		template.KeyUsage |= x509.KeyUsageCertSign
 	}
@@ -151,7 +154,7 @@ func (config CertConfig) Generate() error {
 		return fmt.Errorf("failed to create certificate: %v", err)
 	}
 
-	certOut, err := os.Create("/tmp/cert/cert.pem")
+	certOut, err := os.Create(config.CertDir + "/cert.pem")
 	if err != nil {
 		return fmt.Errorf("failed to open cert.pem for writing: %v", err)
 	}
@@ -162,7 +165,7 @@ func (config CertConfig) Generate() error {
 		return fmt.Errorf("error closing cert.pem: %v", err)
 	}
 
-	keyOut, err := os.OpenFile("/tmp/cert/key.pem", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	keyOut, err := os.OpenFile(config.CertDir+"/key.pem", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to open key.pem for writing: %v", err)
 	}

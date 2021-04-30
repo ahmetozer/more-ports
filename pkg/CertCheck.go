@@ -1,45 +1,40 @@
 package pkg
 
 import (
-	"fmt"
 	"log"
 	"os"
 )
 
-func CertCheck() (string, error) {
+func (config *CertConfig) CertCheck() error {
 
 	var err error
 	certCheckOk := false
-	certDir := "/tmp/cert"
-	if _, err := os.Stat("/config/key.pem"); err == nil {
-		log.Printf("/config/key.pem exists\n")
+
+	if _, err := os.Stat(config.CertDir + "/key.pem"); err == nil {
+		log.Printf(config.CertDir + "/key.pem exists\n")
 		certCheckOk = true
 	} else {
-		log.Printf("/config/key.pem not exist\n")
+		log.Printf(config.CertDir + "/key.pem not exist\n")
 		certCheckOk = false
 	}
 	if certCheckOk {
-		if _, err := os.Stat("/config/cert.pem"); err == nil {
-			fmt.Printf("/config/cert.pem exists\n")
+		if _, err := os.Stat(config.CertDir + "/cert.pem"); err == nil {
+			log.Printf(config.CertDir + "/cert.pem exists\n")
 			certCheckOk = true
 		} else {
-			fmt.Printf("/config/cert.pem not exist\n")
+			log.Printf(config.CertDir + "cert.pem not exist\n")
 			certCheckOk = false
 		}
 	}
 
-	if certCheckOk {
-		certDir = "/config"
-	} else {
+	if !certCheckOk {
 		log.Printf("Self created certs will be used\n")
-		certDir = "/tmp/cert"
-		systemCert := CertConfig{}
-		systemCert.Defaults()
-		err = systemCert.Generate()
+		config.Defaults()
+		err = config.Generate()
 		if err != nil {
-			return "", err
+			return err
 		}
 	}
-	return certDir, err
+	return nil
 
 }
