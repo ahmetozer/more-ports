@@ -77,6 +77,6 @@ func Main(args []string) {
 		//TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 	}
 
-	log.Printf("Starting Server HTTPS server\n")
+	log.Printf("Starting Server HTTPS server %s\n", svConf.listen)
 	log.Fatal(httpServer.ListenAndServeTLS(currcertDir+"/cert.pem", currcertDir+"/key.pem"))
 }
