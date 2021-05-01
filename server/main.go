@@ -22,10 +22,29 @@ var (
 
 func Main(args []string) {
 	//flags := flag.NewFlagSet("server", flag.ContinueOnError)
+	svConf.originAddr = "127.0.0.1"
+	var err error
+	if RunningEnv == "container" {
+		a, err := listUpInterfaces()
+		if err != nil {
+			log.Fatal("Err while listing network interfaces %v", err)
+		}
+		//Detect network host mode
+		if len := len(a); len > 2 {
+			log.Printf("You are in a container %v\n", len)
+		} else {
+			log.Printf("Detecting Origin\n")
+			if svConf.originAddr, err = DefaultRoute(); err != nil {
+				log.Fatalf("%s", err)
+			}
+			log.Printf("Origin %s\n", svConf.originAddr)
+		}
+	}
+
 	flags := flag.NewFlagSet("server", flag.ExitOnError)
 	flags.StringVar(&svConf.listen, "listen", ":443", "Server listen port")
 	flags.StringVar(&svConf.defaultPort, "default-port", "8080", "Origin forward port")
-	flags.StringVar(&svConf.originAddr, "origin", "127.0.0.1", "Origin address")
+	flags.StringVar(&svConf.originAddr, "origin", svConf.originAddr, "Origin address")
 	flags.BoolVar(&argHelp, "h", false, "Print help for server mode")
 	flags.Parse(args)
 	if argHelp {
@@ -44,7 +63,7 @@ func Main(args []string) {
 		CertDir: currcertDir,
 	}
 
-	err := certConfig.CertCheck()
+	err = certConfig.CertCheck()
 	if err != nil {
 		log.Fatalf("Err while creating Cert %s", err)
 	}
