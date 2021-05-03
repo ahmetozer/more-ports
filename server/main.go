@@ -1,7 +1,10 @@
 package server
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -31,7 +34,7 @@ func Main(args []string) {
 	if RunningEnv == "container" {
 		a, err := listUpInterfaces()
 		if err != nil {
-			log.Fatal("Err while listing network interfaces %v", err)
+			log.Fatalf("Err while listing network interfaces %s", err)
 		}
 		//Detect network host mode
 		if len := len(a); len > 2 {
@@ -96,6 +99,23 @@ func Main(args []string) {
 		}),
 		// Disable HTTP/2.
 		//TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
+	}
+	if svConf.clientCert != "" {
+		caCert, err := ioutil.ReadFile(svConf.clientCert)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		roots := x509.NewCertPool()
+		ok := roots.AppendCertsFromPEM(caCert)
+		if !ok {
+			log.Fatal("failed to parse root certificate")
+		}
+		httpServer.TLSConfig = &tls.Config{
+			ClientAuth: tls.RequireAndVerifyClientCert,
+			ClientCAs:  roots,
+		}
+
 	}
 
 	if svConf.serverName == "" {
