@@ -1,13 +1,21 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 )
 
-func proxyHTTP(w http.ResponseWriter, r *http.Request) {
+func (obj *ServerConfig) proxyHTTP(w http.ResponseWriter, r *http.Request) {
+	if obj.serverName != "" {
+		if obj.serverName != r.TLS.ServerName {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "The request server name is invalid.")
+			return
+		}
+	}
 	var remotePort string
 	if target, err := url.Parse("http://" + r.Host); err == nil {
 		if tempPort := target.Port(); tempPort == "" {

@@ -12,6 +12,7 @@ type ServerConfig struct {
 	listen      string
 	defaultPort string
 	originAddr  string
+	serverName  string
 }
 
 var (
@@ -45,6 +46,7 @@ func Main(args []string) {
 	flags.StringVar(&svConf.listen, "listen", ":443", "Server listen port")
 	flags.StringVar(&svConf.defaultPort, "default-port", "8080", "Origin forward port")
 	flags.StringVar(&svConf.originAddr, "origin", svConf.originAddr, "Origin address")
+	flags.StringVar(&svConf.serverName, "server-name", "", "Server name check from TLS")
 	flags.BoolVar(&argHelp, "h", false, "Print help for server mode")
 	flags.Parse(args)
 	if argHelp {
@@ -71,12 +73,15 @@ func Main(args []string) {
 	httpServer := &http.Server{
 		Addr: svConf.listen,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			proxyHTTP(w, r)
+			svConf.proxyHTTP(w, r)
 		}),
 		// Disable HTTP/2.
 		//TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 	}
 
+	if svConf.serverName == "" {
+		log.Printf("WARN: Flag server-name is not set. The system allows all server names.")
+	}
 	log.Printf("Starting Server HTTPS server %s\n", svConf.listen)
 	log.Fatal(httpServer.ListenAndServeTLS(currcertDir+"/cert.pem", currcertDir+"/key.pem"))
 }
