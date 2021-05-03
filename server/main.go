@@ -11,8 +11,11 @@ import (
 type ServerConfig struct {
 	listen      string
 	defaultPort string
-	originAddr  string
+	remoteAddr  string
 	serverName  string
+	clientCert  string
+	serverCert  string
+	serverKey   string
 }
 
 var (
@@ -23,7 +26,7 @@ var (
 
 func Main(args []string) {
 	//flags := flag.NewFlagSet("server", flag.ContinueOnError)
-	svConf.originAddr = "127.0.0.1"
+	svConf.remoteAddr = "127.0.0.1"
 	var err error
 	if RunningEnv == "container" {
 		a, err := listUpInterfaces()
@@ -35,18 +38,21 @@ func Main(args []string) {
 			log.Printf("You are in a container %v\n", len)
 		} else {
 			log.Printf("Detecting Origin\n")
-			if svConf.originAddr, err = DefaultRoute(); err != nil {
+			if svConf.remoteAddr, err = DefaultRoute(); err != nil {
 				log.Fatalf("%s", err)
 			}
-			log.Printf("Origin %s\n", svConf.originAddr)
+			log.Printf("Origin %s\n", svConf.remoteAddr)
 		}
 	}
 
 	flags := flag.NewFlagSet("server", flag.ExitOnError)
 	flags.StringVar(&svConf.listen, "listen", ":443", "Server listen port")
 	flags.StringVar(&svConf.defaultPort, "default-port", "8080", "Origin forward port")
-	flags.StringVar(&svConf.originAddr, "origin", svConf.originAddr, "Origin address")
+	flags.StringVar(&svConf.remoteAddr, "remote", svConf.remoteAddr, "Remote address for forwarded ports")
 	flags.StringVar(&svConf.serverName, "server-name", "", "Server name check from TLS")
+	flags.StringVar(&svConf.clientCert, "client-cert", "", "Allow only given client certificate")
+	flags.StringVar(&svConf.serverCert, "server-cert", "", "Server cert")
+	flags.StringVar(&svConf.serverKey, "server-key", "", "Server key")
 	flags.BoolVar(&argHelp, "h", false, "Print help for server mode")
 	flags.Parse(args)
 	if argHelp {
@@ -61,8 +67,21 @@ func Main(args []string) {
 		currcertDir = "/tmp/cert"
 	}
 
+	//svConf.clientCert.Hosts
 	certConfig := shared.CertConfig{
-		CertDir: currcertDir,
+		KeyLocation:  currcertDir + "/key.pem",
+		CertLocation: currcertDir + "/cert.pem",
+	}
+
+	if svConf.serverCert == "" {
+		certConfig.CertLocation = currcertDir + "/cert.pem"
+	}
+	if svConf.serverKey == "" {
+		certConfig.KeyLocation = currcertDir + "/key.pem"
+	}
+
+	if svConf.serverName != "" {
+		certConfig.Hosts = append(certConfig.Hosts, svConf.serverName)
 	}
 
 	err = certConfig.CertCheck()
@@ -83,5 +102,5 @@ func Main(args []string) {
 		log.Printf("WARN: Flag server-name is not set. The system allows all server names.")
 	}
 	log.Printf("Starting Server HTTPS server %s\n", svConf.listen)
-	log.Fatal(httpServer.ListenAndServeTLS(currcertDir+"/cert.pem", currcertDir+"/key.pem"))
+	log.Fatal(httpServer.ListenAndServeTLS(certConfig.CertLocation, certConfig.KeyLocation))
 }

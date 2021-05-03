@@ -10,19 +10,19 @@ func (config *CertConfig) CertCheck() error {
 	var err error
 	certCheckOk := false
 
-	if _, err := os.Stat(config.CertDir + "/key.pem"); err == nil {
-		log.Printf(config.CertDir + "/key.pem exists\n")
+	if _, err := os.Stat(config.KeyLocation); err == nil {
+		log.Printf(config.KeyLocation + " exists\n")
 		certCheckOk = true
 	} else {
-		log.Printf(config.CertDir + "/key.pem not exist\n")
+		log.Printf(config.KeyLocation + " not exist\n")
 		certCheckOk = false
 	}
 	if certCheckOk {
-		if _, err := os.Stat(config.CertDir + "/cert.pem"); err == nil {
-			log.Printf(config.CertDir + "/cert.pem exists\n")
+		if _, err := os.Stat(config.CertLocation); err == nil {
+			log.Printf(config.CertLocation + " exists\n")
 			certCheckOk = true
 		} else {
-			log.Printf(config.CertDir + "cert.pem not exist\n")
+			log.Printf(config.CertLocation + " not exist\n")
 			certCheckOk = false
 		}
 	}

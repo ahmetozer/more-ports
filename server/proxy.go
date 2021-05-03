@@ -26,7 +26,7 @@ func (obj *ServerConfig) proxyHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		log.Fatal(err)
 	}
-	origin, err := url.Parse("http://" + svConf.originAddr + ":" + remotePort)
+	origin, err := url.Parse("http://" + svConf.remoteAddr + ":" + remotePort)
 	if err != nil {
 		log.Fatal(err)
 	}

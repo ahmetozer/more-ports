@@ -13,6 +13,7 @@ import (
 	"math/big"
 	"net"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -30,14 +31,15 @@ func publicKey(priv interface{}) interface{} {
 }
 
 type CertConfig struct {
-	Ed25519Key bool
-	IsCA       bool
-	RsaBits    int
-	EcdsaCurve string
-	ValidFrom  string
-	CertDir    string
-	ValidFor   time.Duration
-	Hosts      []string
+	Ed25519Key   bool
+	IsCA         bool
+	RsaBits      int
+	EcdsaCurve   string
+	ValidFrom    string
+	KeyLocation  string
+	CertLocation string
+	ValidFor     time.Duration
+	Hosts        []string
 }
 
 func (config *CertConfig) Defaults() {
@@ -55,22 +57,31 @@ func (config *CertConfig) Defaults() {
 	if config.RsaBits == 0 {
 		config.RsaBits = 2048
 	}
-	if config.CertDir == "" {
-		config.CertDir = "/tmp/cert/"
+	if config.CertLocation == "" {
+		config.CertLocation = "/tmp/cert/cert.pem"
+	}
+	if config.KeyLocation == "" {
+		config.KeyLocation = "/tmp/cert/key.pem"
 	}
 }
 
 func (config CertConfig) Generate() error {
 	var err error
-	// create Certiface dir
-	if _, err = os.Stat(config.CertDir); os.IsNotExist(err) {
-		if err = os.MkdirAll(config.CertDir, os.ModePerm); err != nil {
+	// create cert.pem dir
+	if _, err = os.Stat(filepath.Dir(config.CertLocation)); os.IsNotExist(err) {
+		if err = os.MkdirAll(filepath.Dir(config.CertLocation), os.ModePerm); err != nil {
+			return err
+		}
+	}
+	// create key.pem dir
+	if _, err = os.Stat(filepath.Dir(config.KeyLocation)); os.IsNotExist(err) {
+		if err = os.MkdirAll(filepath.Dir(config.KeyLocation), os.ModePerm); err != nil {
 			return err
 		}
 	}
 
-	if _, err := os.Stat(config.CertDir + "/key.pem"); err == nil {
-		if _, err := os.Stat(config.CertDir + "/cert.pem"); err != nil {
+	if _, err := os.Stat(config.KeyLocation); err == nil {
+		if _, err := os.Stat(config.CertLocation); err != nil {
 			return err
 		}
 	}
@@ -154,7 +165,7 @@ func (config CertConfig) Generate() error {
 		return fmt.Errorf("failed to create certificate: %v", err)
 	}
 
-	certOut, err := os.Create(config.CertDir + "/cert.pem")
+	certOut, err := os.Create(config.CertLocation)
 	if err != nil {
 		return fmt.Errorf("failed to open cert.pem for writing: %v", err)
 	}
@@ -165,7 +176,7 @@ func (config CertConfig) Generate() error {
 		return fmt.Errorf("error closing cert.pem: %v", err)
 	}
 
-	keyOut, err := os.OpenFile(config.CertDir+"/key.pem", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	keyOut, err := os.OpenFile(config.KeyLocation, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to open key.pem for writing: %v", err)
 	}
