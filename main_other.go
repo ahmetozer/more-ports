@@ -1,4 +1,4 @@
-// +build linux
+// +build !linux
 
 package main
 
@@ -11,7 +11,6 @@ import (
 	"strconv"
 
 	client "github.com/ahmetozer/more-ports/client"
-	server "github.com/ahmetozer/more-ports/server"
 )
 
 var (
@@ -65,15 +64,11 @@ func main() {
 		args = args[1:]
 	} else {
 		log.Println("Mode is not given.")
-		// subcmd = "server"
-		// log.Println("Mode is set to server automaticaly")
 	}
 
 	switch subcmd {
 	case "server":
-		log.Println("Server mode")
-		server.RunningEnv = RunningEnv
-		server.Main(args)
+		log.Println("Server mode is not supported on windows")
 	case "client":
 		log.Println("Client mode")
 		client.Main(args)

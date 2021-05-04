@@ -1,0 +1,32 @@
+  
+before:
+  hooks:
+  - go mod download
+builds:
+- main: .
+  binary: more-ports
+  env:
+  - CGO_ENABLED=0
+  - GIT_COMMIT=$(git rev-list -1 HEAD)
+  - GIT_TAG=$(git tag | tail -1)
+  - GIT_URL=$(git config --get remote.origin.url)
+  ldflags:
+  - -X "main.GitUrl=$GIT_URL"
+  - -X "main.GitTag=$GIT_TAG"
+  - -X "main.GitCommit=$GIT_COMMIT"
+  - -X "main.BuildTime=$(date -Isecond)"
+  goos:
+  - linux
+  - windows
+  - darwin
+  goarch:
+  - "386"
+  - amd64
+  - arm
+  - arm64
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+archives:
+  - format: binary
+    name_template: "{{ .Binary }}-{{ .Os }}-{{ .Arch }}"

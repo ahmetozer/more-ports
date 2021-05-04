@@ -8,7 +8,7 @@ COPY server ./server
 COPY config ./config
 COPY pkg ./pkg
 COPY .git ./.git
-COPY *.go .
+COPY *.go ./
 RUN export GIT_COMMIT=$(git rev-list -1 HEAD) && \
     export GIT_TAG=$(git tag | tail -1) && \
     export GIT_URL=$(git config --get remote.origin.url) && \
