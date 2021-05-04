@@ -71,10 +71,7 @@ func Main(args []string) {
 	}
 
 	//svConf.clientCert.Hosts
-	certConfig := shared.CertConfig{
-		KeyLocation:  currcertDir + "/key.pem",
-		CertLocation: currcertDir + "/cert.pem",
-	}
+	certConfig := shared.CertConfig{}
 
 	if svConf.serverCert == "" {
 		certConfig.CertLocation = currcertDir + "/cert.pem"
@@ -100,6 +97,7 @@ func Main(args []string) {
 		// Disable HTTP/2.
 		//TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 	}
+
 	if svConf.clientCert != "" {
 		caCert, err := ioutil.ReadFile(svConf.clientCert)
 		if err != nil {

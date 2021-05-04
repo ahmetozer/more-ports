@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 
+	client "github.com/ahmetozer/more-ports/client"
 	server "github.com/ahmetozer/more-ports/server"
 )
 
@@ -73,7 +74,7 @@ func main() {
 		server.Main(args)
 	case "client":
 		log.Println("Client mode")
-		//client(args)
+		client.Main(args)
 	default:
 		log.Fatalf("Err mode is not server neither client")
 	}
