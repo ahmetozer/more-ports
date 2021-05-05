@@ -1,6 +1,8 @@
 package client
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -35,7 +37,26 @@ func connLink(destination io.WriteCloser, source io.ReadCloser) {
 	io.Copy(destination, source)
 }
 
+type contextKey struct {
+	key string
+}
+
+var ConnContextKey = &contextKey{"http-conn"}
+
+func SaveConnInContext(ctx context.Context, c net.Conn) context.Context {
+	return context.WithValue(ctx, ConnContextKey, c)
+}
+func GetConn(r *http.Request) net.Conn {
+	return r.Context().Value(ConnContextKey).(net.Conn)
+}
+
 func handleHTTP(w http.ResponseWriter, r *http.Request) {
+	conn := GetConn(r)
+	if addr := conn.LocalAddr().String(); addr == r.Host {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(w, serveProxyConfig(addr))
+		return
+	}
 	r.URL.Host = strings.Split(r.URL.Host, ":")[0] + httpPort
 	resp, err := http.DefaultTransport.RoundTrip(r)
 	if err != nil {

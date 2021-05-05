@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	RunningEnv string = ""
 	argHelp    bool   = false
+	RunningEnv string = ""
 	listen     string = ""
 	httpPort   string = ""
 	httpsPort  string = ""
@@ -30,7 +30,8 @@ func Main(args []string) {
 	}
 	log.Printf("Remote ports for http %s, https %s\n", httpPort, httpsPort)
 	server := &http.Server{
-		Addr: listen,
+		ConnContext: SaveConnInContext,
+		Addr:        listen,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodConnect { //HTTPS
 				handleHTTPConnect(w, r)
@@ -41,5 +42,6 @@ func Main(args []string) {
 		// Disable HTTP/2.
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 	}
+	log.Printf("Client proxy server started at %s\n", listen)
 	log.Fatal(server.ListenAndServe())
 }
