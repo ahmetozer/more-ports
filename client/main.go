@@ -18,7 +18,7 @@ var (
 func Main(args []string) {
 
 	flags := flag.NewFlagSet("client", flag.ExitOnError)
-	flags.StringVar(&listen, "listen", ":8080", "Print help for server mode")
+	flags.StringVar(&listen, "listen", "localhost:8080", "Proxy server listen addr")
 	flags.StringVar(&httpPort, "http-port", ":80", "Remote server port for http requests")
 	flags.StringVar(&httpsPort, "https-port", ":443", "Remote server port for https requests")
 	flags.BoolVar(&argHelp, "h", false, "Print help for server mode")
