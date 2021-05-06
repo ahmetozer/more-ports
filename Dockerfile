@@ -1,7 +1,8 @@
 FROM golang:1.16
 WORKDIR $GOPATH/src/github.com/ahmetozer/more-ports/
+RUN export DEBIAN_FRONTEND=noninteractive && apt update && apt install -y libcap2-bin
 COPY go.mod go.sum ./
-RUN go mod download
+RUN go mod download -x
 
 COPY client ./client
 COPY server ./server
@@ -14,7 +15,6 @@ RUN export GIT_COMMIT=$(git rev-list -1 HEAD) && \
     export GIT_URL=$(git config --get remote.origin.url) && \
     CGO_ENABLED=0 go build -v -ldflags="-X 'main.GitUrl=$GIT_URL' -X 'main.GitTag=$GIT_TAG' -X 'main.GitCommit=$GIT_COMMIT' -X 'main.BuildTime=$(date -Isecond)' -X 'main.RunningEnv=container'" -o /app/more-ports
 
-RUN export DEBIAN_FRONTEND=noninteractive && apt update && apt install -y libcap2-bin
 RUN setcap CAP_NET_BIND_SERVICE=+eip /app/more-ports
 
 RUN echo "nobody:x:65534:65534:Nobody:/:" > /app/passwd.minimal && \

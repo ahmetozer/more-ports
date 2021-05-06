@@ -7,12 +7,14 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sync"
 
 	shared "github.com/ahmetozer/more-ports/pkg"
 )
 
 type ServerConfig struct {
-	listen      string
+	httpsAddr   string
+	httpAddr    string
 	defaultPort string
 	remoteAddr  string
 	serverName  string
@@ -49,7 +51,8 @@ func Main(args []string) {
 	}
 
 	flags := flag.NewFlagSet("server", flag.ExitOnError)
-	flags.StringVar(&svConf.listen, "listen", ":443", "Server listen port")
+	flags.StringVar(&svConf.httpsAddr, "https", ":443", "HTTPS server listen address")
+	flags.StringVar(&svConf.httpAddr, "http", ":80", "HTTP server listen address")
 	flags.StringVar(&svConf.defaultPort, "default-port", "8080", "Origin forward port")
 	flags.StringVar(&svConf.remoteAddr, "remote", svConf.remoteAddr, "Remote address for forwarded ports")
 	flags.StringVar(&svConf.serverName, "server-name", "", "Server name check from TLS")
@@ -89,13 +92,19 @@ func Main(args []string) {
 		log.Fatalf("Err while creating Cert %s", err)
 	}
 
-	httpServer := &http.Server{
-		Addr: svConf.listen,
+	httpsServer := http.Server{
+		Addr: svConf.httpsAddr,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			svConf.proxyHTTP(w, r)
+			svConf.HTTPStoHTTP(w, r)
 		}),
 		// Disable HTTP/2.
 		//TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
+	}
+	httpServer := http.Server{
+		Addr: svConf.httpAddr,
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			svConf.HTTPtoHTTP(w, r)
+		}),
 	}
 
 	if svConf.clientCert != "" {
@@ -109,7 +118,7 @@ func Main(args []string) {
 		if !ok {
 			log.Fatal("failed to parse root certificate")
 		}
-		httpServer.TLSConfig = &tls.Config{
+		httpsServer.TLSConfig = &tls.Config{
 			ClientAuth: tls.RequireAndVerifyClientCert,
 			ClientCAs:  roots,
 		}
@@ -119,6 +128,22 @@ func Main(args []string) {
 	if svConf.serverName == "" {
 		log.Printf("WARN: Flag server-name is not set. The system allows all server names.")
 	}
-	log.Printf("Starting Server HTTPS server %s\n", svConf.listen)
-	log.Fatal(httpServer.ListenAndServeTLS(certConfig.CertLocation, certConfig.KeyLocation))
+
+	wg := new(sync.WaitGroup)
+	wg.Add(2)
+
+	go func() {
+		log.Printf("Starting Server HTTPS server %s\n", svConf.httpsAddr)
+		log.Fatal(httpsServer.ListenAndServeTLS(certConfig.CertLocation, certConfig.KeyLocation))
+		wg.Done()
+	}()
+
+	go func() {
+		log.Printf("Starting Server HTTP server %s\n", svConf.httpAddr)
+		log.Fatal(httpServer.ListenAndServe())
+		wg.Done()
+	}()
+
+	wg.Wait()
+
 }
