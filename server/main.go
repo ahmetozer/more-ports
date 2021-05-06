@@ -24,9 +24,10 @@ type ServerConfig struct {
 }
 
 var (
-	RunningEnv string = ""
-	svConf     ServerConfig
-	argHelp    bool = false
+	argHelp       bool   = false
+	httpsRedirect bool   = false
+	RunningEnv    string = ""
+	svConf        ServerConfig
 )
 
 func Main(args []string) {
@@ -59,6 +60,7 @@ func Main(args []string) {
 	flags.StringVar(&svConf.clientCert, "client-cert", "", "Allow only given client certificate")
 	flags.StringVar(&svConf.serverCert, "server-cert", "", "Server cert")
 	flags.StringVar(&svConf.serverKey, "server-key", "", "Server key")
+	flags.BoolVar(&httpsRedirect, "https-redirect", false, "Redirect all http request to https")
 	flags.BoolVar(&argHelp, "h", false, "Print help for server mode")
 	flags.Parse(args)
 	if argHelp {
@@ -105,6 +107,16 @@ func Main(args []string) {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			svConf.HTTPtoHTTP(w, r)
 		}),
+	}
+
+	if httpsRedirect {
+		httpServer.Handler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			target := "https://" + req.Host + req.URL.Path
+			if len(req.URL.RawQuery) > 0 {
+				target += "?" + req.URL.RawQuery
+			}
+			http.Redirect(w, req, target, http.StatusTemporaryRedirect)
+		})
 	}
 
 	if svConf.clientCert != "" {
