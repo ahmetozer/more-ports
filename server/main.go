@@ -52,16 +52,16 @@ func Main(args []string) {
 	}
 
 	flags := flag.NewFlagSet("server", flag.ExitOnError)
-	flags.StringVar(&svConf.httpsAddr, "https", ":443", "HTTPS server listen address")
-	flags.StringVar(&svConf.httpAddr, "http", ":80", "HTTP server listen address")
-	flags.StringVar(&svConf.defaultPort, "default-port", "8080", "Origin forward port")
-	flags.StringVar(&svConf.remoteAddr, "remote", svConf.remoteAddr, "Remote address for forwarded ports")
-	flags.StringVar(&svConf.serverName, "server-name", "", "Server name check from TLS")
-	flags.StringVar(&svConf.clientCert, "client-cert", "", "Allow only given client certificate")
-	flags.StringVar(&svConf.serverCert, "server-cert", "", "Server cert")
-	flags.StringVar(&svConf.serverKey, "server-key", "", "Server key")
-	flags.BoolVar(&httpsRedirect, "https-redirect", false, "Redirect all http request to https")
-	flags.BoolVar(&argHelp, "h", false, "Print help for server mode")
+	flags.StringVar(&svConf.httpsAddr, "https", ":443", "HTTPS server listen address.")
+	flags.StringVar(&svConf.httpAddr, "http", ":80", "HTTP server listen address.")
+	flags.StringVar(&svConf.defaultPort, "default-port", "8080", "Port not defined schemes redirect to this port.")
+	flags.StringVar(&svConf.remoteAddr, "remote", svConf.remoteAddr, "Remote address for forwarded ports.")
+	flags.StringVar(&svConf.serverName, "server-name", "", "Server name check.")
+	flags.StringVar(&svConf.clientCert, "client-cert", "", "Client certificate location to authorize the client.")
+	flags.StringVar(&svConf.serverCert, "server-cert", "", "Server cert location.")
+	flags.StringVar(&svConf.serverKey, "server-key", "", "Server key location.")
+	flags.BoolVar(&httpsRedirect, "https-redirect", false, "Redirect all http requests to https.")
+	flags.BoolVar(&argHelp, "h", false, "Print help for server mode. (This)")
 	flags.Parse(args)
 	if argHelp {
 		flags.PrintDefaults()
@@ -139,6 +139,12 @@ func Main(args []string) {
 
 	if svConf.serverName == "" {
 		log.Printf("WARN: Flag server-name is not set. The system allows all server names.")
+	}
+
+	log.Printf("Remote addr is %s and default port is %s\n", svConf.remoteAddr, svConf.defaultPort)
+
+	if httpsRedirect {
+		log.Printf("https redirect enabled. All http request forwarded to https.")
 	}
 
 	wg := new(sync.WaitGroup)
