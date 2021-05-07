@@ -18,7 +18,7 @@ var (
 func Main(args []string) {
 
 	flags := flag.NewFlagSet("client", flag.ExitOnError)
-	flags.StringVar(&listen, "listen", "localhost:8080", "Proxy server listen addr")
+	flags.StringVar(&listen, "listen", "127.0.0.1:8080", "Proxy server listen addr")
 	flags.StringVar(&httpPort, "http-port", ":80", "Remote server port for http requests")
 	flags.StringVar(&httpsPort, "https-port", ":443", "Remote server port for https requests")
 	flags.BoolVar(&argHelp, "h", false, "Print help for server mode")
@@ -43,5 +43,6 @@ func Main(args []string) {
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 	}
 	log.Printf("Client proxy server started at %s\n", listen)
+	log.Printf("Client proxy configuration is located at http://%s/proxy.pac", listen)
 	log.Fatal(server.ListenAndServe())
 }
