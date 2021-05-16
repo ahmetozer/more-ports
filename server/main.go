@@ -41,7 +41,7 @@ func Main(args []string) {
 		}
 		//Detect network host mode
 		if len := len(a); len > 2 {
-			log.Printf("You are in a container %v\n", len)
+			log.Printf("Host network, detected interfaces: %v\n", len)
 		} else {
 			log.Printf("Detecting Origin\n")
 			if svConf.remoteAddr, err = DefaultRoute(); err != nil {
